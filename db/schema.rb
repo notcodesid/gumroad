@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2025_04_25_212934) do
+ActiveRecord::Schema[7.1].define(version: 2025_08_01_112727) do
   create_table "active_storage_attachments", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
     t.string "name", limit: 191, null: false
     t.string "record_type", limit: 191, null: false
@@ -1110,6 +1110,7 @@ ActiveRecord::Schema[7.1].define(version: 2025_04_25_212934) do
     t.bigint "taxonomy_id"
     t.string "native_type", default: "digital", null: false
     t.integer "discover_fee_per_thousand", default: 100, null: false
+    t.boolean "tax_inclusive", default: false, null: false
     t.index ["banned_at"], name: "index_links_on_banned_at"
     t.index ["custom_permalink"], name: "index_links_on_custom_permalink", length: 191
     t.index ["deleted_at"], name: "index_links_on_deleted_at"
@@ -1352,7 +1353,9 @@ ActiveRecord::Schema[7.1].define(version: 2025_04_25_212934) do
     t.integer "flags", default: 0, null: false
     t.integer "variant_id"
     t.integer "suggested_price_cents"
+    t.boolean "tax_inclusive", default: true, null: false
     t.index ["link_id"], name: "index_prices_on_link_id"
+    t.index ["tax_inclusive"], name: "index_prices_on_tax_inclusive"
     t.index ["variant_id"], name: "index_prices_on_variant_id"
   end
 
