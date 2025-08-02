@@ -198,6 +198,34 @@ module Product::Prices
     price_for_recurrence(recurrence).present?
   end
 
+  # Net price methods for tax-inclusive pricing
+  def net_price_cents_for_tax_rate(tax_rate)
+    return display_price_cents unless tax_inclusive && tax_rate > 0
+
+    # Calculate net price from gross price: net = gross / (1 + tax_rate)
+    net_price_decimal = display_price_cents / (1 + tax_rate)
+    net_price_cents = net_price_decimal.round(0).to_i
+
+    # Ensure net price is positive
+    return display_price_cents if net_price_cents <= 0
+
+    net_price_cents
+  end
+
+  def net_price_for_tax_rate(tax_rate, additional_attrs = {})
+    net_price_cents = net_price_cents_for_tax_rate(tax_rate)
+    display_price_for_price_cents(net_price_cents, additional_attrs)
+  end
+
+  def display_net_price_cents
+    # For tax-exclusive products, net price equals gross price
+    return display_price_cents unless tax_inclusive
+
+    # For tax-inclusive products without a specific tax rate, return gross price
+    # (net price calculation requires a specific tax rate context)
+    display_price_cents
+  end
+
   def suggested_price_formatted_without_dollar_sign_for_recurrence(recurrence)
     suggested_price_cents = suggested_price_cents_for_recurrence(recurrence)
     return nil if suggested_price_cents.blank?
