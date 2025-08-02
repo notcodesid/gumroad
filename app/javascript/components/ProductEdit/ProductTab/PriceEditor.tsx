@@ -21,6 +21,8 @@ export const PriceEditor = ({
   onAllowInstallmentPlanChange,
   onNumberOfInstallmentsChange,
   currencyCodeSelector,
+  taxInclusive,
+  setTaxInclusive,
 }: {
   priceCents: number;
   suggestedPriceCents: number | null;
@@ -35,6 +37,8 @@ export const PriceEditor = ({
   onAllowInstallmentPlanChange: (allowed: boolean) => void;
   onNumberOfInstallmentsChange: (numberOfInstallments: number) => void;
   currencyCodeSelector?: { options: CurrencyCode[]; onChange: (currencyCode: CurrencyCode) => void };
+  taxInclusive: boolean;
+  setTaxInclusive: (taxInclusive: boolean) => void;
 }) => {
   const uid = React.useId();
 
@@ -83,6 +87,15 @@ export const PriceEditor = ({
           </fieldset>
         </div>
       </Details>
+      <div className="toggle">
+        <Toggle value={taxInclusive} onChange={setTaxInclusive}>
+          Price includes tax
+        </Toggle>
+        <p className="help">
+          When enabled, customers pay exactly the price shown (tax included).
+          When disabled, tax is added at checkout.
+        </p>
+      </div>
       {eligibleForInstallmentPlans ? (
         <InstallmentPlanEditor
           totalAmountCents={priceCents}
