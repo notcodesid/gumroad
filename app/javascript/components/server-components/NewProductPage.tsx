@@ -68,6 +68,7 @@ const NewProductPage = ({
   const [description, setDescription] = useState<string | null>(null);
   const [summary, setSummary] = useState<string | null>(null);
   const [numberOfContentPages, setNumberOfContentPages] = useState<number | null>(null);
+  const [taxInclusive, setTaxInclusive] = useState(true);
 
   const isRecurringBilling = is<RecurringProductType>(productType);
 
@@ -190,6 +191,7 @@ const NewProductPage = ({
           subscription_duration: isRecurringBilling ? subscriptionDuration || defaultRecurrence : null,
           number_of_content_pages: numberOfContentPages,
           ai_prompt: aiPrompt.trim(),
+          tax_inclusive: taxInclusive,
         }),
       };
 
@@ -399,6 +401,22 @@ const NewProductPage = ({
                     </label>
                   ) : null}
                 </div>
+              </fieldset>
+
+              <fieldset>
+                <legend>Tax settings</legend>
+                <label className="checkbox">
+                  <input
+                    type="checkbox"
+                    checked={taxInclusive}
+                    onChange={(e) => setTaxInclusive(e.target.checked)}
+                  />
+                  <span>Price includes tax</span>
+                </label>
+                <p className="help">
+                  When enabled, customers pay exactly the price shown (tax included).
+                  When disabled, tax is added at checkout.
+                </p>
               </fieldset>
             </section>
           </form>
