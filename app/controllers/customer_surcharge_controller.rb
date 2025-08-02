@@ -8,8 +8,8 @@ class CustomerSurchargeController < ApplicationController
     vat_id_valid = false
     has_vat_id_input = false
     shipping_rate = 0
-    tax_rate = 0
-    tax_included_rate = 0
+    tax_excluded_cents = 0
+    tax_included_cents = 0
     subtotal = 0
     products.each do |item|
       product = Link.find_by_unique_permalink(item[:permalink])
@@ -23,11 +23,9 @@ class CustomerSurchargeController < ApplicationController
       tax_cents = tax_result.tax_cents
       if tax_cents > 0
         if product.tax_inclusive
-          # For tax-inclusive products, tax is included in the price
-          tax_included_rate += tax_cents
+          tax_included_cents += tax_cents
         else
-          # For tax-exclusive products, tax is added on top
-          tax_rate += tax_cents
+          tax_excluded_cents += tax_cents
         end
       end
       subtotal += tax_result.price_cents
@@ -37,8 +35,8 @@ class CustomerSurchargeController < ApplicationController
       vat_id_valid:,
       has_vat_id_input:,
       shipping_rate_cents: shipping_rate,
-      tax_cents: tax_rate.round.to_i,
-      tax_included_cents: tax_included_rate.round.to_i,
+      tax_cents: tax_excluded_cents.round.to_i,
+      tax_included_cents: tax_included_cents.round.to_i,
       subtotal_cents: subtotal.round.to_i
     }
   end
