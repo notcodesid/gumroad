@@ -41,12 +41,27 @@ class SalesTaxCalculator
     return SalesTaxCalculation.zero_tax(price_cents) if tax_rate.nil?
     return SalesTaxCalculation.zero_tax(price_cents) unless tax_eligible?
 
-    tax_amount_cents = price_cents * tax_rate.combined_rate
-    SalesTaxCalculation.new(price_cents:,
-                            tax_cents: tax_amount_cents,
-                            zip_tax_rate: tax_rate,
-                            business_vat_status: @buyer_vat_id.present? ? :invalid : nil,
-                            is_quebec:)
+    if product.tax_inclusive
+      # For tax-inclusive pricing, calculate net price from gross price
+      net_price_cents = (price_cents / (1 + tax_rate.combined_rate)).round
+      tax_amount_cents = price_cents - net_price_cents
+
+      SalesTaxCalculation.new(price_cents:,
+                              tax_cents: tax_amount_cents,
+                              net_price_cents:,
+                              zip_tax_rate: tax_rate,
+                              business_vat_status: @buyer_vat_id.present? ? :invalid : nil,
+                              is_quebec:)
+    else
+      # For tax-exclusive pricing (original behavior)
+      tax_amount_cents = price_cents * tax_rate.combined_rate
+      SalesTaxCalculation.new(price_cents:,
+                              tax_cents: tax_amount_cents,
+                              net_price_cents: price_cents,
+                              zip_tax_rate: tax_rate,
+                              business_vat_status: @buyer_vat_id.present? ? :invalid : nil,
+                              is_quebec:)
+    end
   end
 
   private
@@ -103,18 +118,38 @@ class SalesTaxCalculator
 
       tax_amount_cents = (taxjar_response_json["amount_to_collect"] * 100.0).round.to_d
 
-      SalesTaxCalculation.new(price_cents:,
-                              tax_cents: tax_amount_cents,
-                              zip_tax_rate: nil,
-                              business_vat_status: buyer_vat_id.present? ? :invalid : nil,
-                              used_taxjar: true,
-                              taxjar_info:,
-                              gumroad_is_mpf: is_us_taxable_state || is_ca_taxable,
-                              is_quebec:)
+      if product.tax_inclusive
+        # For tax-inclusive pricing, calculate net price from the returned tax info
+        tax_rate = taxjar_response_json["rate"]
+        net_price_cents = (price_cents / (1 + tax_rate)).round
+        # Recalculate tax based on the net price to ensure consistency
+        tax_amount_cents = price_cents - net_price_cents
+
+        SalesTaxCalculation.new(price_cents:,
+                                tax_cents: tax_amount_cents,
+                                net_price_cents:,
+                                zip_tax_rate: nil,
+                                business_vat_status: buyer_vat_id.present? ? :invalid : nil,
+                                used_taxjar: true,
+                                taxjar_info:,
+                                gumroad_is_mpf: is_us_taxable_state || is_ca_taxable,
+                                is_quebec:)
+      else
+        SalesTaxCalculation.new(price_cents:,
+                                tax_cents: tax_amount_cents,
+                                net_price_cents: price_cents,
+                                zip_tax_rate: nil,
+                                business_vat_status: buyer_vat_id.present? ? :invalid : nil,
+                                used_taxjar: true,
+                                taxjar_info:,
+                                gumroad_is_mpf: is_us_taxable_state || is_ca_taxable,
+                                is_quebec:)
+      end
     end
 
     def validate
       raise SalesTaxCalculatorValidationError, "Price (cents) should be an Integer" unless @price_cents.is_a? Integer
+      raise SalesTaxCalculatorValidationError, "Price (cents) must be non-negative" if @price_cents < 0
       raise SalesTaxCalculatorValidationError, "Buyer Location should be a Hash" unless @buyer_location.is_a? Hash
       raise SalesTaxCalculatorValidationError, "Product should be a Link instance" unless @product.is_a? Link
     end
