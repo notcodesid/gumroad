@@ -610,7 +610,10 @@ class LinksController < ApplicationController
     end
 
     def paged_params
-      params.permit(:page, sort: [:key, :direction])
+      # In some dev/test setups params may be a plain Hash (e.g., when mocked);
+      # normalize to ActionController::Parameters before permitting.
+      raw_params = params.is_a?(ActionController::Parameters) ? params : ActionController::Parameters.new(params)
+      raw_params.permit(:page, sort: [:key, :direction])
     end
 
     def paginated_memberships(page:, query: nil)
