@@ -263,8 +263,12 @@ const LibraryPage = ({ results, creators, bundles, reviews_page_enabled, followi
   const isDesktop = useIsAboveBreakpoint("lg");
   const [mobileFiltersExpanded, setMobileFiltersExpanded] = React.useState(false);
   const [showingAllCreators, setShowingAllCreators] = React.useState(false);
-  const hasArchivedProducts = results.some((result) => result.purchase.is_archived);
-  const showArchivedNotice = !state.search.showArchivedOnly && !results.some((result) => !result.purchase.is_archived);
+  const hasArchivedProducts = state.results.some((result) => result.purchase.is_archived);
+  const showArchivedNotice =
+    !state.search.showArchivedOnly && !state.results.some((result) => !result.purchase.is_archived);
+  const archivedCount = state.results.filter((r) => r.purchase.is_archived).length;
+  const showArchivedBanner =
+    !state.search.showArchivedOnly && archivedCount > 0 && state.results.some((r) => !r.purchase.is_archived);
   const hasParams =
     state.search.showArchivedOnly || state.search.query || state.search.creators.length || state.search.bundles.length;
   const [deleting, setDeleting] = React.useState<Result | null>(null);
@@ -290,11 +294,11 @@ const LibraryPage = ({ results, creators, bundles, reviews_page_enabled, followi
     url.searchParams.delete("purchase_id");
     window.history.replaceState(window.history.state, "", url.toString());
     if (purchaseIds.length > 0) {
-      const email = results.find(({ purchase }) => purchase.id === purchaseIds[0])?.purchase.email;
+      const email = state.results.find(({ purchase }) => purchase.id === purchaseIds[0])?.purchase.email;
       if (email) showAlert(`Your purchase was successful! We sent a receipt to ${email}.`, "success");
 
       for (const purchaseId of purchaseIds) {
-        const product = results.find(({ purchase }) => purchase.id === purchaseId)?.product;
+        const product = state.results.find(({ purchase }) => purchase.id === purchaseId)?.product;
         if (!product) continue;
 
         if (product.has_third_party_analytics)
@@ -315,12 +319,12 @@ const LibraryPage = ({ results, creators, bundles, reviews_page_enabled, followi
       followingWishlistsEnabled={following_wishlists_enabled}
     >
       <section className="products-section__container">
-        {results.length === 0 || showArchivedNotice ? (
+        {state.results.length === 0 || showArchivedNotice ? (
           <div className="placeholder">
             <figure>
               <img src={placeholder} />
             </figure>
-            {results.length === 0 ? (
+            {state.results.length === 0 ? (
               <>
                 <h2 className="library-header">You haven't bought anything... yet!</h2>
                 Once you do, it'll show up here so you can download, watch, read, or listen to all your purchases.
@@ -342,6 +346,24 @@ const LibraryPage = ({ results, creators, bundles, reviews_page_enabled, followi
                 </Button>
               </>
             )}
+          </div>
+        ) : null}
+        {showArchivedBanner ? (
+          <div className="mb-4 flex items-center justify-between rounded border border-yellow-200 bg-yellow-50 px-3 py-2 text-yellow-900">
+            <span>
+              {archivedCount === 1
+                ? "You have 1 archived product."
+                : `You have ${archivedCount} archived products.`}
+            </span>
+            <Button
+              color="accent"
+              onClick={(e) => {
+                e.preventDefault();
+                dispatch({ type: "update-search", search: { showArchivedOnly: true } });
+              }}
+            >
+              See archive
+            </Button>
           </div>
         ) : null}
         <div className="with-sidebar">
