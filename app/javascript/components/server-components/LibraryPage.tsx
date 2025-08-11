@@ -266,7 +266,10 @@ const LibraryPage = ({ results, creators, bundles, reviews_page_enabled, followi
   const hasArchivedProducts = state.results.some((result) => result.purchase.is_archived);
   const showArchivedNotice =
     !state.search.showArchivedOnly && !state.results.some((result) => !result.purchase.is_archived);
-  const archivedCount = state.results.filter((r) => r.purchase.is_archived).length;
+  const archivedCount = React.useMemo(
+    () => state.results.reduce((acc, r) => acc + (r.purchase.is_archived ? 1 : 0), 0),
+    [state.results],
+  );
   const showArchivedBanner =
     !state.search.showArchivedOnly && archivedCount > 0 && state.results.some((r) => !r.purchase.is_archived);
   const hasParams =
@@ -357,12 +360,11 @@ const LibraryPage = ({ results, creators, bundles, reviews_page_enabled, followi
             </span>
             <Button
               color="accent"
-              onClick={(e) => {
-                e.preventDefault();
+              onClick={() => {
                 dispatch({ type: "update-search", search: { showArchivedOnly: true } });
               }}
             >
-              See archive
+              Click here to view
             </Button>
           </div>
         ) : null}
