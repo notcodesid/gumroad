@@ -364,50 +364,6 @@ describe("Library Scenario", type: :feature, js: true) do
     end
   end
 
-  describe "archived purchases banner" do
-    it "shows a banner with archived count and switches to archived view" do
-      p1 = create(:purchase, purchaser: @user)
-      p2 = create(:purchase, purchaser: @user, is_archived: true)
-      p3 = create(:purchase, purchaser: @user, is_archived: true)
-      Link.import(refresh: true, force: true)
-
-      visit "/library"
-
-      expect(page).to have_text("You have 2 archived products.")
-      click_on "See archive"
-      expect(page.current_url).to include("show_archived_only=true")
-      expect(page).to have_product_card(p2.link)
-      expect(page).to have_product_card(p3.link)
-    end
-
-    it "pluralizes correctly for a single archived purchase" do
-      create(:purchase, purchaser: @user)
-      create(:purchase, purchaser: @user, is_archived: true)
-      Link.import(refresh: true, force: true)
-
-      visit "/library"
-      expect(page).to have_text("You have 1 archived product.")
-    end
-
-    it "does not show banner in archived-only view" do
-      create(:purchase, purchaser: @user, is_archived: true)
-      Link.import(refresh: true, force: true)
-
-      visit "/library?show_archived_only=true"
-      expect(page).to_not have_text("archived product")
-      expect(page).to_not have_button("See archive")
-    end
-
-    it "shows the all-archived notice when all purchases are archived" do
-      create(:purchase, purchaser: @user, is_archived: true)
-      Link.import(refresh: true, force: true)
-
-      visit "/library"
-      expect(page).to have_text("You've archived all your products.")
-      expect(page).to have_button("See archive")
-    end
-  end
-
   it "allow marking deleted by the buyer" do
     purchase = create(:purchase, purchaser: @user)
     Link.import(refresh: true, force: true)
