@@ -589,4 +589,112 @@ describe Api::V2::SalesController do
       end
     end
   end
+
+  describe "POST 'resend_receipt'" do
+    before do
+      @purchase = create(:purchase, purchaser: @purchaser, link: @product)
+      @params = { id: @purchase.external_id }
+    end
+
+    describe "when logged in with view_sales scope" do
+      before do
+        @token = create("doorkeeper/access_token", application: @app,
+                                                   resource_owner_id: @seller.id,
+                                                   scopes: "view_sales")
+        @params.merge!(access_token: @token.token)
+      end
+
+      it "successfully resends receipt for a valid sale" do
+        expect_any_instance_of(Purchase).to receive(:resend_receipt)
+        
+        post :resend_receipt, params: @params
+        
+        expect(response).to be_successful
+        expect(response.parsed_body).to eq({
+          "success" => true,
+          "message" => "Receipt resent successfully to #{@purchase.email}"
+        })
+      end
+
+      it "handles resending receipt for gift purchases" do
+        gift_purchase = create(:gift_sender_purchase_successful, purchaser: @purchaser, link: @product)
+        
+        expect_any_instance_of(Purchase).to receive(:resend_receipt)
+        
+        post :resend_receipt, params: @params.merge(id: gift_purchase.external_id)
+        
+        expect(response).to be_successful
+        expect(response.parsed_body["success"]).to eq true
+        expect(response.parsed_body["message"]).to include("Receipt resent successfully")
+      end
+
+      it "handles resending receipt for preorder purchases" do
+        preorder_purchase = create(:preorder_authorization_successful, purchaser: @purchaser, link: @product)
+        
+        expect_any_instance_of(Purchase).to receive(:resend_receipt)
+        
+        post :resend_receipt, params: @params.merge(id: preorder_purchase.external_id)
+        
+        expect(response).to be_successful
+        expect(response.parsed_body["success"]).to eq true
+      end
+
+      it "returns error for non-existent sale" do
+        post :resend_receipt, params: @params.merge(id: "non-existent-id")
+        
+        expect(response.parsed_body).to eq({
+          "success" => false,
+          "message" => "The sale was not found."
+        })
+      end
+
+      it "does not allow resending receipt for someone else's sale" do
+        post :resend_receipt, params: @params.merge(id: @purchase_by_seller.external_id)
+        
+        expect(response.parsed_body).to eq({
+          "success" => false,
+          "message" => "The sale was not found."
+        })
+      end
+
+      it "works for various purchase states" do
+        %w(successful gift_receiver_purchase_successful).each do |purchase_state|
+          purchase = create(:purchase, link: @product, seller: @seller, purchase_state: purchase_state)
+          
+          expect_any_instance_of(Purchase).to receive(:resend_receipt)
+          
+          post :resend_receipt, params: @params.merge(id: purchase.external_id)
+          
+          expect(response).to be_successful
+          expect(response.parsed_body["success"]).to eq true
+        end
+      end
+    end
+
+    describe "when not logged in with view_sales scope" do
+      before do
+        @token = create("doorkeeper/access_token", application: @app,
+                                                   resource_owner_id: @seller.id,
+                                                   scopes: "view_sales")
+        @params.merge!(access_token: @token.token)
+      end
+
+      it "the response is 403 forbidden for incorrect scope" do
+        # Create token without view_sales scope
+        wrong_token = create("doorkeeper/access_token", application: @app,
+                                                       resource_owner_id: @seller.id,
+                                                       scopes: "edit_products")
+        
+        post :resend_receipt, params: @params.merge(access_token: wrong_token.token)
+        expect(response.code).to eq "403"
+      end
+    end
+
+    describe "when not authenticated" do
+      it "returns 401 unauthorized" do
+        post :resend_receipt, params: { id: @purchase.external_id }
+        expect(response.code).to eq "401"
+      end
+    end
+  end
 end
